@@ -1,0 +1,327 @@
+import tkinter as tk
+import random
+import pygame
+from datetime import datetime
+import os
+import sys
+import winsound
+
+def resource_path(path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, path)
+
+root = tk.Tk()
+root.title("Warning Game")
+root.attributes("-fullscreen", True)
+root.configure(bg="#0f0f0f")
+top_bar = tk.Frame(root, bg="#1c1c1c", height=40)
+top_bar.pack(fill="x")
+
+
+def block_all_keys(event):
+    return "break"
+
+root.bind_all("<Key>", block_all_keys)
+
+# СНАЧАЛА инициализация
+pygame.mixer.init()
+rare_sound = pygame.mixer.Sound(resource_path("SRN.mp3"))
+
+volume_level = 0.5
+pygame.mixer.music.set_volume(volume_level)
+
+# ПОТОМ загрузка музыки
+music_path = resource_path("WG1.mp3")
+
+pygame.mixer.music.load(music_path)
+pygame.mixer.music.play(-1)
+
+music_enabled = True
+
+
+
+
+
+
+
+messages = []
+
+# Экран
+screen = tk.Frame(root, bg="black")
+screen.pack(fill="both", expand=True)
+
+title = tk.Label(
+    screen,
+    text="Сообщения",
+    bg="black",
+    fg="white",
+    font=("Arial", 18)
+)
+title.pack(pady=10)
+
+chat = tk.Text(
+    screen,
+    bg="#111111",
+    fg="white",
+    font=("Arial", 11),
+    cursor="arrow"
+)
+
+chat.pack(fill="both", expand=True, padx=10, pady=10)
+
+chat.config(state="disabled")
+
+def add_message(text):
+    time = datetime.now().strftime("%H:%M:%S")
+    full_text = f"[{time}] {text}\n"
+
+    chat.config(state="normal")
+
+    # сразу добавляем строку, но пустую
+    chat.insert("end", "\n")
+    line_start = chat.index("end-1c")
+
+    chat.config(state="disabled")
+
+
+    i = 0
+
+
+
+    def write():
+
+        nonlocal i
+
+        if i < len(full_text):
+            chat.config(state="normal")
+
+            chat.delete(line_start, f"{line_start} lineend")
+            chat.insert(line_start, full_text[:i + 1])
+
+            chat.config(state="disabled")
+
+            i += 1
+            root.after(10, write)
+
+        else:
+            chat.config(state="normal")
+            chat.delete(line_start, f"{line_start} lineend")
+            chat.insert(line_start, full_text)
+            chat.config(state="disabled")
+
+
+
+    write()
+
+
+    chat.config(state="disabled")
+    chat.bind("<Button-1>", lambda e: "break")
+    chat.bind("<B1-Motion>", lambda e: "break")
+    chat.bind("<Double-Button-1>", lambda e: "break")
+    chat.bind("<Triple-Button-1>", lambda e: "break")
+
+    global rarest_found, game_started
+
+    if game_started and "%" in text:
+        try:
+            percent = float(text.split("%")[0])
+        except:
+            percent = 999
+
+        if rarest_found is None or percent < rarest_found[0]:
+            rarest_found = (percent, text)
+            rare_label.config(text=f"🏆 Самое редкое: {percent}%")
+
+warning_messages = [
+
+    ("60% | RSCHS: Внимание! Беспилотная опасность! Телефон экстренных служб - 112!", 60),
+    ("40% | RSCHS: Внимание! Грозовая опасность! Телефон экстренных служб - 112!", 40),
+    ("30% | RSCHS: Внимание! Ракетная опасность! Спрячьтесь в укрытие! Телефон экстренных служб - 112!" , 30),
+    ("20% | RSCHS: Внимание! Опасность торнадо! Спрячьтесь в укрытие! Телефон экстренных служб - 112!" , 20),
+    ("10% | RSCHS: Внимание! Опасность цунами! Телефон экстренных служб - 112!", 10),
+    ("5% ! | RSCHS: Внимание! Ядерная опасность! Бегите! Телефон экстренных служб - 112!", 5),
+    ("1% !! | RSCHS: Внимание! Опасность извержения вулкана! Спасайтесь! Телефон экстренных служб - 112!" , 1),
+    ("0.6% !!! | RSCHS: Внимание! Никакой опасности нет!", 0.6),
+]
+
+rarest_found = None
+game_started = False
+
+
+def get_random_message():
+    texts = [msg[0] for msg in warning_messages]
+    weights = [msg[1] for msg in warning_messages]
+
+    return random.choices(
+        texts,
+        weights=weights,
+        k=1
+    )[0]
+
+
+def random_warning():
+    msg = get_random_message()
+    add_message(msg)
+
+    # 🎵 кастомный звук для самого редкого сообщения
+    if "0.6%" in msg:
+        rare_sound.play()
+
+    root.after(
+        random.randint(5000, 15000),
+        random_warning
+    )
+
+
+
+
+
+
+# Первое уведомление через 5 секунд
+root.after(5000, random_warning)
+
+close_button = tk.Button(
+    root,
+    text="✕",
+    command=root.destroy,
+    bg="red",
+    fg="white",
+    font=("Arial", 12, "bold"),
+    borderwidth=0
+)
+
+close_button.place(
+    relx=1.0,
+    x=-10,
+    y=1,
+    anchor="ne"
+)
+
+def minimize_window():
+    root.iconify()
+
+minimize_button = tk.Button(
+    root,
+    text="—",
+    command=minimize_window,
+    bg="gray",
+    fg="white",
+    font=("Arial", 12, "bold"),
+    borderwidth=0
+)
+
+minimize_button.place(
+    relx=1.0,
+    x=-50,
+    y=1,
+    anchor="ne"
+)
+
+clock_label = tk.Label(
+    top_bar,
+    text="00:00:00",
+    bg="#1c1c1c",
+    fg="white",
+    font=("Arial", 12, "bold")
+)
+
+clock_label.pack(side="left", padx=10)
+
+rare_label = tk.Label(
+    top_bar,
+    text="🏆 Самое редкое: ещё не найдено",
+    bg="#1c1c1c",
+    fg="#ffd700",
+    font=("Arial", 10, "bold")
+)
+
+rare_label.pack(side="left", padx=20)
+
+add_message("Добро пожаловать в игру Warning Game. Получайте предупреждения об опасностях. Они имеют разные шансы на выпадение, от 60 до 0.6 % (шанс указан слева от каждого сообщения). Собери все сообщения! Сообщения являются ШУТОЧНЫМИ! | Игра создана исключительно в РАЗВЛЕКАТЕЛЬНЫХ целях! Обновления переодически выходят!")
+game_started = True
+
+
+def update_clock():
+    current_time = datetime.now().strftime("%H:%M:%S")
+
+    clock_label.config(
+        text=current_time
+    )
+
+    root.after(
+        1000,
+        update_clock
+    )
+
+update_clock()
+
+def toggle_music():
+    global music_enabled
+
+    if music_enabled:
+        pygame.mixer.music.pause()
+        music_button.config(text="🔇")
+        music_enabled = False
+    else:
+        pygame.mixer.music.unpause()
+        music_button.config(text="🔊")
+        music_enabled = True
+
+music_button = tk.Button(
+    root,
+    text="🔊",
+    command=toggle_music,
+    bg="gray",
+    fg="white",
+    font=("Arial", 12, "bold"),
+    borderwidth=0
+)
+
+music_button.place(
+    relx=1.0,
+    x=-90,
+    y=1,
+    anchor="ne"
+)
+
+def change_volume(value):
+    global volume_level
+    volume_level = float(value)
+    pygame.mixer.music.set_volume(volume_level)
+
+volume_slider = tk.Scale(
+    root,
+    from_=0.1,
+    to=1,
+    resolution=0.01,
+    orient="horizontal",
+    label="Громкость",
+    command=change_volume,
+    bg="black",
+    fg="white",
+    troughcolor="gray",
+    highlightthickness=0
+)
+
+volume_slider.set(volume_level)
+
+volume_slider.place(
+    relx=1.0,
+    x=-130,
+    y=1,
+    anchor="ne"
+)
+
+
+
+
+
+
+root.mainloop()
+
+
+
