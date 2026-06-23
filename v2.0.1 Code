@@ -7,8 +7,9 @@ import sys
 import winsound
 import webbrowser
 import json
+import urllib.request
 
-
+CURRENT_VERSION = "2.0.1"
 
 def resource_path(path):
     try:
@@ -130,7 +131,14 @@ def add_message(text):
     chat.bind("<Double-Button-1>", lambda e: "break")
     chat.bind("<Triple-Button-1>", lambda e: "break")
     if game_started:
+        old_count = len(found_messages)
+
         found_messages.add(text)
+
+        if len(found_messages) > old_count:
+            collection_label.config(
+                text=f"📚 Собрано: {len(found_messages)}/{len(warning_messages)}"
+            )
         save_game()
 
 
@@ -288,6 +296,36 @@ rare_label = tk.Label(
 
 rare_label.pack(side="left", padx=20)
 
+#update_label = tk.Label(
+    #top_bar,
+    #text="Проверка обновлений...",
+    #bg="#1c1c1c",
+    #fg="orange",
+    #font=("Arial", 10, "bold")
+#)
+
+#update_label.pack(side="left", padx=20)
+
+collection_label = tk.Label(
+    top_bar,
+    text="📚 Собрано: 0/12",
+    bg="#1c1c1c",
+    fg="#00ff88",
+    font=("Arial", 10, "bold")
+)
+
+collection_label.pack(side="left", padx=20)
+
+update_label = tk.Label(
+        top_bar,
+        text="",
+        bg="#1c1c1c",
+        fg="orange",
+        font=("Arial", 10, "bold")
+    )
+
+(update_label.pack(side="left", padx=20))
+
 
 
 def load_game():
@@ -301,6 +339,10 @@ def load_game():
             data = json.load(f)
 
         found_messages = set(data.get("found_messages", []))
+
+        collection_label.config(
+            text=f"Собрано: {len(found_messages)}/{len(warning_messages)}"
+        )
 
         rarest_percent = data.get("rarest_percent")
 
@@ -393,6 +435,11 @@ volume_slider.place(
 def open_site():
     webbrowser.open("https://github.com/DarkRT2106/Warning-Game-Versions")
 
+    update_label.bind(
+        "<Button-1>",
+        lambda e: open_site()
+    )
+
 site_button = tk.Button(
     root,
     text="Наш GitHub",
@@ -406,7 +453,22 @@ site_button.place(x=1, y=25)
 
 load_game()
 
+def check_updates():
+    try:
+        url = "https://raw.githubusercontent.com/DarkRT2106/Warning-Game-Versions/main/version.txt"
+
+        latest = urllib.request.urlopen(url).read().decode().strip()
+
+        if latest != CURRENT_VERSION:
+            update_label.config(
+                text=f"⚠ Доступна версия {latest}"
+            )
+
+    except:
+        update_label.config(
+            text="⚠ Не удалось проверить обновления"
+        )
+
+
+
 root.mainloop()
-
-
-
