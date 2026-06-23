@@ -1,2 +1,2 @@
 # Warning-Game-Versions
-All versions of my game
+Hello. I'm making my mini games on Python. Thank you for gownloading. It is playable on Computers only. New versions will be added soon...
