@@ -5,6 +5,10 @@ from datetime import datetime
 import os
 import sys
 import winsound
+import webbrowser
+import json
+
+
 
 def resource_path(path):
     try:
@@ -76,6 +80,8 @@ chat.pack(fill="both", expand=True, padx=10, pady=10)
 chat.config(state="disabled")
 
 def add_message(text):
+    global rarest_found, game_started
+
     time = datetime.now().strftime("%H:%M:%S")
     full_text = f"[{time}] {text}\n"
 
@@ -123,8 +129,11 @@ def add_message(text):
     chat.bind("<B1-Motion>", lambda e: "break")
     chat.bind("<Double-Button-1>", lambda e: "break")
     chat.bind("<Triple-Button-1>", lambda e: "break")
+    if game_started:
+        found_messages.add(text)
+        save_game()
 
-    global rarest_found, game_started
+
 
     if game_started and "%" in text:
         try:
@@ -136,21 +145,59 @@ def add_message(text):
             rarest_found = (percent, text)
             rare_label.config(text=f"🏆 Самое редкое: {percent}%")
 
+            save_game()
+
 warning_messages = [
 
-    ("60% | RSCHS: Внимание! Беспилотная опасность! Телефон экстренных служб - 112!", 60),
-    ("40% | RSCHS: Внимание! Грозовая опасность! Телефон экстренных служб - 112!", 40),
+    ("50% | RSCHS: Внимание! Беспилотная опасность! Телефон экстренных служб - 112!", 50),
+    ("60% | RSCHS: Внимание! Опасность сильной грозы! Телефон экстренных служб - 112!", 60),
     ("30% | RSCHS: Внимание! Ракетная опасность! Спрячьтесь в укрытие! Телефон экстренных служб - 112!" , 30),
-    ("20% | RSCHS: Внимание! Опасность торнадо! Спрячьтесь в укрытие! Телефон экстренных служб - 112!" , 20),
-    ("10% | RSCHS: Внимание! Опасность цунами! Телефон экстренных служб - 112!", 10),
-    ("5% ! | RSCHS: Внимание! Ядерная опасность! Бегите! Телефон экстренных служб - 112!", 5),
-    ("1% !! | RSCHS: Внимание! Опасность извержения вулкана! Спасайтесь! Телефон экстренных служб - 112!" , 1),
-    ("0.6% !!! | RSCHS: Внимание! Никакой опасности нет!", 0.6),
+    ("10% | RSCHS: Внимание! Опасность торнадо! Спрячьтесь в укрытие! Телефон экстренных служб - 112!" , 10),
+    ("5% | RSCHS: Внимание! Опасность цунами! Телефон экстренных служб - 112!", 5),
+    ("0.4% !! | RSCHS: Внимание! Ядерная опасность! Бегите! Телефон экстренных служб - 112!", 0.4),
+    ("1%  | RSCHS: Внимание! Опасность извержения вулкана! Спасайтесь! Телефон экстренных служб - 112!" , 1),
+    ("0.2% !!! | RSCHS: Внимание! Никакой опасности нет!", 0.2),
+    ("0.6% ! | RSCHS: Внимание! Танковая опасность! Телефон экстренных служб - 112!", 0.6),
+    ("2% | RSCHS: Внимание! Опасность! Телефон экстренных служб - 112!", 2),
+    ("4% | RSCHS: Внимание! Опасность штурма со стороны врага! Спрячьтесь в укрытие! Телефон экстренных служб - 112!" , 4),
+    ("70% | RSCHS: Внимание! Опасность сильного ветра! Телефон экстренных служб - 112!", 70),
 ]
 
 rarest_found = None
 game_started = False
 
+found_messages = set()
+
+SAVE_FILE = os.path.join(
+    os.getenv("APPDATA"),
+    "WarningGameSave.json"
+)
+
+
+
+
+
+def save_game():
+    try:
+        data = {
+            "found_messages": list(found_messages),
+            "rarest_percent": (
+                rarest_found[0]
+                if rarest_found is not None
+                else None
+            )
+        }
+
+        with open(SAVE_FILE, "w", encoding="utf-8") as f:
+            json.dump(
+                data,
+                f,
+                ensure_ascii=False,
+                indent=4
+            )
+
+    except Exception as e:
+        print("Ошибка сохранения:", e)
 
 def get_random_message():
     texts = [msg[0] for msg in warning_messages]
@@ -168,7 +215,7 @@ def random_warning():
     add_message(msg)
 
     # 🎵 кастомный звук для самого редкого сообщения
-    if "0.6%" in msg:
+    if "0." in msg:
         rare_sound.play()
 
     root.after(
@@ -233,7 +280,7 @@ clock_label.pack(side="left", padx=10)
 
 rare_label = tk.Label(
     top_bar,
-    text="🏆 Самое редкое: ещё не найдено",
+    text="🏆 Самое редкое: не найдено",
     bg="#1c1c1c",
     fg="#ffd700",
     font=("Arial", 10, "bold")
@@ -241,7 +288,33 @@ rare_label = tk.Label(
 
 rare_label.pack(side="left", padx=20)
 
-add_message("Добро пожаловать в игру Warning Game. Получайте предупреждения об опасностях. Они имеют разные шансы на выпадение, от 60 до 0.6 % (шанс указан слева от каждого сообщения). Собери все сообщения! Сообщения являются ШУТОЧНЫМИ! | Игра создана исключительно в РАЗВЛЕКАТЕЛЬНЫХ целях! Обновления переодически выходят!")
+
+
+def load_game():
+    global rarest_found, found_messages
+
+    if not os.path.exists(SAVE_FILE):
+        return
+
+    try:
+        with open(SAVE_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        found_messages = set(data.get("found_messages", []))
+
+        rarest_percent = data.get("rarest_percent")
+
+        if rarest_percent is not None:
+            rarest_found = (rarest_percent, "")
+
+            rare_label.config(
+                text=f"🏆 Самое редкое: {rarest_percent}%"
+            )
+
+    except Exception as e:
+        print("Ошибка загрузки:", e)
+
+add_message("Добро пожаловать в игру Warning Game. Получайте предупреждения об опасностях. Они имеют разные шансы на выпадение, от 70 до 0.2 % (шанс указан слева от каждого сообщения). Собери все сообщения! Сообщения являются ШУТОЧНЫМИ! | Игра создана исключительно в РАЗВЛЕКАТЕЛЬНЫХ целях! Обновления переодически выходят! Вы можете посмотреть их по кнопке выше ")
 game_started = True
 
 
@@ -317,9 +390,21 @@ volume_slider.place(
 )
 
 
+def open_site():
+    webbrowser.open("https://github.com/DarkRT2106/Warning-Game-Versions")
 
+site_button = tk.Button(
+    root,
+    text="Наш GitHub",
+    command=open_site,
+    bg="grey",
+    fg="white",
+    font=("Arial", 12, "bold")
+)
 
+site_button.place(x=1, y=25)
 
+load_game()
 
 root.mainloop()
 
