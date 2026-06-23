@@ -1,2 +1,2 @@
 # Warning-Game-Versions
-Hello. I'm making my mini games on Python. Thank you for downloading. It is playable on Computers only. New versions will be added soon...
+Hello. I'm making my mini games on Python. Thank you for downloading. It is playable on Computers only. New versions will be added soon... And... ChatGPT helped me with creating of this game... tysm GPT
